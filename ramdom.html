@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼音、加减法生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .pinyin {
+            font-size: 72px; /* 拼音字体大小 */
+            font-weight: bold;
+            color: #000;
+        }
+
+        .chinese {
+            font-size: 56px; /* 中文字体大小 */
+            font-weight: bold;
+            color: #666;
+        }
+
+        .math {
+            font-size: 72px; /* 数学运算字体 */
+            font-weight: bold;
+            color: #333;
+        }
+
+        .dropdown {
+            font-size: 20px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .hidden{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<h1 style="font-size: 48px;">拼音、加减法生成器</h1>
+
+<!-- 功能选择下拉框 -->
+<label for="action" style="font-size: 24px;">选择功能：</label>
+<select id="action" class="dropdown">
+    <option value="pinyin">生成随机拼音</option>
+    <option value="math">生成随机加减法</option>
+    <option value="char">生成随机汉字</option>
+</select>
+
+<!-- 结果范围选择下拉框 -->
+<div id="range-container" class="hidden">
+    <label for="range" style="font-size: 24px;">选择结果范围：</label>
+    <select id="range" class="dropdown">
+        <option value="10">10</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+    </select>
+</div>
+
+<div class="container">
+    <button class="button" onclick="performRandomAction()">随机生成</button>
+    <div class="result">
+        <div class="pinyin" id="pinyin">点击上方按钮生成内容</div>
+        <div class="chinese" id="chinese"></div>
+        <div class="details" id="details">
+            <p id="strokes">笔画数: </p>
+            <p id="radicals">偏旁部首: </p>
+            <p id="structure">汉字结构: </p>
+            <p id="traditional">繁体字写法: </p>
+            <p id="variants">异体字: </p>
+        </div>
+        <div class="math" id="math"></div>
+    </div>
+</div>
+<script>
+    const pinyinDictionary = {
+        "b": "玻",
+        "p": "坡",
+        "m": "摸",
+        "f": "佛",
+        "d": "得",
+        "t": "特",
+        "n": "讷",
+        "l": "勒",
+        "g": "哥",
+        "k": "科",
+        "h": "喝",
+        "j": "鸡",
+        "q": "欺",
+        "x": "西",
+        "zh": "知",
+        "ch": "吃",
+        "sh": "诗",
+        "r": "日",
+        "z": "资",
+        "c": "刺",
+        "s": "思",
+        "y": "衣",
+        "w": "乌",
+        "a": "啊",
+        "o": "喔",
+        "e": "鹅",
+        "i": "衣",
+        "u": "乌",
+        "ü": "鱼",
+        "ai": "哀",
+        "ei": "诶",
+        "ui": "威",
+        "ao": "煞",
+        "ou": "欧",
+        "iu": "优",
+        "ie": "耶",
+        "üe": "约",
+        "er": "耳",
+        "an": "安",
+        "en": "恩",
+        "in": "因",
+        "un": "温",
+        "ün": "晕",
+        "ang": "昂",
+        "eng": "亨",
+        "ing": "英",
+        "ong": "翁",
+        "zhi": "织",
+        "chi": "吃",
+        "shi": "狮",
+        "ri": "日",
+        "zi": "资",
+        "ci": "次",
+        "si": "丝",
+        "yi": "衣",
+        "wu": "屋",
+        "yu": "鱼",
+        "ye": "椰",
+        "yue": "月",
+        "yuan": "元",
+        "yin": "音",
+        "yun": "云",
+        "ying": "鹰"
+    };
+
+    const shengmu = ["b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "zh", "ch", "sh", "r", "z", "c", "s", "y", "w"];
+    const danyunmu = ["a", "o", "e", "i", "u", "ü"];
+    const fuyunmu = ["ai", "ei", "ui", "ao", "ou", "iu", "ie", "üe", "er", "an", "en", "in", "un", "ün", "ang", "eng", "ing", "ong"];
+    const zhengti = ["zhi", "chi", "shi", "ri", "zi", "ci", "si", "yi", "wu", "yu", "ye", "yue", "yuan", "yin", "yun", "ying"];
+    const structure_type=[{"code":"A0","structure_type":"品字形结构","proportion":"各部分相同"},{"code":"B0","structure_type":"上下结构"},{"code":"B1","structure_type":"上下结构","proportion":"上下相等"},{"code":"B2","structure_type":"上下结构","proportion":"上小下大"},{"code":"B3","structure_type":"上下结构","proportion":"上大下小"},{"code":"B4","structure_type":"田字结构","proportion":"四部分相同"},{"code":"D0","structure_type":"独体结构","proportion":"方正"},{"code":"D1","structure_type":"镶嵌结构","proportion":"方正"},{"code":"E0","structure_type":"上中下结构"},{"code":"E1","structure_type":"上中下结构","proportion":"上中下相等"},{"code":"E2","structure_type":"上中下结构","proportion":"上中下不等"},{"code":"H0","structure_type":"左右结构"},{"code":"H1","structure_type":"左右结构","proportion":"左右相等"},{"code":"H2","structure_type":"左右结构","proportion":"左窄右宽"},{"code":"H3","structure_type":"左右结构","proportion":"左宽右窄"},{"code":"M0","structure_type":"左中右结构"},{"code":"M1","structure_type":"左中右结构","proportion":"左中右相等"},{"code":"M2","structure_type":"左中右结构","proportion":"左中右不等"},{"code":"Q0","structure_type":"全包围结构","proportion":"全包围"},{"code":"R0","structure_type":"半包围结构"},{"code":"R1","structure_type":"半包围结构","proportion":"左包右"},{"code":"R2","structure_type":"半包围结构","proportion":"左上包右下"},{"code":"R3","structure_type":"半包围结构","proportion":"右上包左下"},{"code":"R4","structure_type":"半包围结构","proportion":"左下包右上"},{"code":"R5","structure_type":"半包围结构","proportion":"上包下"},{"code":"R6","structure_type":"半包围结构","proportion":"下包上"}];
+    let char = [];
+
+    const action = document.getElementById('action');
+    const rangeContainer = document.getElementById('range-container');
+    const details = document.getElementById('details');
+    // 添加监听器，当功能选择变化时执行
+    action.addEventListener('change', function () {
+        if (action.value === 'pinyin') {
+            // 如果选择了 "生成随机拼音"，隐藏结果范围下拉框
+            rangeContainer.classList.add('hidden');
+			details.classList.add('hidden')
+        } else if(action.value === 'math') {
+            // 如果选择了 "生成随机加减法"，否则显示结果范围下拉框
+            rangeContainer.classList.remove('hidden');
+			details.classList.add('hidden')
+        }else if(action.value === 'char') {
+            // 如果选择了 "生成随机汉字"，隐藏结果范围下拉框
+            rangeContainer.classList.add('hidden');
+			details.classList.remove('hidden')
+        }
+    });
+
+    // 随机获取数组中的一个元素
+    function getRandomElement(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+
+    // 生成随机拼音
+    function generatePinyin() {
+        const category = Math.floor(Math.random() * 4); // 随机选择类别
+        let pinyin;
+
+        if (category === 0) {
+            pinyin = getRandomElement(shengmu); // 声母
+        } else if (category === 1) {
+            pinyin = getRandomElement(danyunmu); // 单韵母
+        } else if (category === 2) {
+            pinyin = getRandomElement(fuyunmu); // 复韵母
+        } else {
+            pinyin = getRandomElement(zhengti); // 整体认读音节
+        }
+
+        const chinese = pinyinDictionary[pinyin];
+        document.getElementById("pinyin").textContent = pinyin;
+        document.getElementById("chinese").textContent = chinese || "未找到对应中文";
+        document.getElementById("math").textContent = ""; // 清空数学区域
+    }
+
+    // 生成随机加减法（确保结果在范围内）
+    function generateMath() {
+        const range = parseInt(document.getElementById("range").value); // 获取用户选择的范围
+        let num1, num2, operator, result;
+
+        do {
+            num1 = Math.floor(Math.random() * (range + 1)); // 随机生成第一个数
+            num2 = Math.floor(Math.random() * (range + 1)); // 随机生成第二个数
+            operator = Math.random() > 0.5 ? "+" : "-"; // 随机选择加法或减法
+
+            if (operator === "+") {
+                result = num1 + num2;
+            } else {
+                if (num1 >= num2) {
+                    result = num1 - num2;
+                } else {
+                    result = num2 - num1; // 确保不为负数
+                }
+            }
+        } while (result > range); // 循环直到结果在范围内
+
+        let mathExpression = `${num1} ${operator} ${operator === "+" ? num2 : (num1 >= num2 ? num2 : num1)} = ${result}`;
+        mathExpression = `${num1} ${operator} ${operator === "+" ? num2 : (num1 >= num2 ? num2 : num1)} = ?`;
+        document.getElementById("math").textContent = mathExpression;
+        document.getElementById("pinyin").textContent = ""; // 清空拼音区域
+        document.getElementById("chinese").textContent = "";
+    }
+
+    // 生成随机汉字
+    function generateChar() {
+
+        const randomIndex = Math.floor(Math.random() * char.length);
+        const selectedHanzi = char[randomIndex];
+        const pinyin = selectedHanzi.pinyin ? selectedHanzi.pinyin.join(', ') : '';
+        const chinese = selectedHanzi.char || '';
+        const strokes = selectedHanzi.strokes || '';
+        const radicals = selectedHanzi.radicals || '';
+        const structureCode = selectedHanzi.structure || '';
+        const traditional = selectedHanzi.traditional || '';
+        const variants = selectedHanzi.variants ? selectedHanzi.variants.join(', ') : '';
+
+        // 根据结构编码获取结构类型
+        const structure = getStructureDescription(structureCode) || '未知结构';
+
+        console.log(selectedHanzi);
+
+        // 更新 HTML 内容，如果字段无值，则隐藏对应的元素
+        updateField("pinyin", pinyin);
+        updateField("chinese", chinese);
+        updateField("strokes", strokes, "笔画数: ");
+        updateField("radicals", radicals, "偏旁部首: ");
+        updateField("structure", structure, "汉字结构: ");
+        updateField("traditional", traditional, "繁体字写法: ");
+        updateField("variants", variants, "异体字: ");
+
+        document.getElementById("math").textContent = ""; // 清空数学区域
+    }
+
+    // 转换为中文描述
+    function getStructureDescription(structureCode) {
+        // 在 structure_type 中查找对应的结构信息
+        const structureInfo = structure_type.find(item => item.code === structureCode);
+
+        // 如果找到对应信息，则返回结构类型和比例的描述
+        if (structureInfo) {
+            const type = structureInfo.structure_type || "未知结构";
+            const proportion = structureInfo.proportion || ""; // 如果没有比例描述则为空
+            return proportion ? `${type}（${proportion}）` : type;
+        }
+
+        // 如果未找到对应的结构代码，则返回默认值
+        return "未知结构";
+    }
+
+    // 通用的字段更新方法
+    function updateField(elementId, value, prefix = "") {
+        const element = document.getElementById(elementId);
+        if (value) {
+            element.classList.remove('hidden'); // 显示字段
+            element.textContent = prefix + value; // 设置文本内容
+        } else {
+            element.classList.add('hidden'); // 隐藏字段
+        }
+    }
+
+    // 根据选择的功能执行操作
+    function performRandomAction() {
+        const action = document.getElementById("action").value;
+        if (action === "pinyin") {
+            generatePinyin();
+        } else if (action === "math") {
+            generateMath();
+        } else if (action === "char") {
+            generateChar();
+        }
+    }
+
+    async function loadHanziData() {
+        try {
+            const response = await fetch('https://gitee.com/pipiro123/chinese-dictionary/raw/main/character/char_base.json');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            console.log('汉字库数据:', data);
+        } catch (error) {
+            console.error('加载汉字库失败:', error);
+        }
+    }
+
+    loadHanziData();
+</script>
+</body>
+</html>
